@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+yt-dlp
+b2sdk
+gunicorn
+python-multipart
