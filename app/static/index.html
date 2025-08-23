@@ -2,8 +2,46 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Anydownloader — Video Downloader</title>
+
+  <title>Any Downloader — The Only Video Downloader You'll Ever Need</title>
+  <link rel="canonical" href="https://dw.fil-bd.com/">
+
+  <!-- SEO -->
+  <meta name="title" content="Any Downloader — The Only Video Downloader You'll Ever Need">
+  <meta name="description" content="Download videos and audio from 1,000+ websites including YouTube, TikTok, Instagram, Facebook, and more. Fast, free, and in the highest quality. No registration required.">
+  <meta name="keywords" content="video downloader, youtube downloader, tiktok downloader, instagram downloader, facebook downloader, free video downloader, online video downloader, mp4 downloader, mp3 converter">
+  <meta name="robots" content="index, follow">
+  <meta name="language" content="English">
+  <meta name="author" content="Any Downloader">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://dw.fil-bd.com/">
+  <meta property="og:title" content="Any Downloader — The Only Video Downloader You'll Ever Need">
+  <meta property="og:description" content="Download videos and audio from 1,000+ websites including YouTube, TikTok, Instagram, Facebook, and more. Fast, free, and in the highest quality.">
+  <meta property="og:image" content="https://dw.fil-bd.com/og-image.png">
+  <meta property="og:site_name" content="Any Downloader">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://dw.fil-bd.com/">
+  <meta property="twitter:title" content="Any Downloader — The Only Video Downloader You'll Ever Need">
+  <meta property="twitter:description" content="Download videos and audio from 1,000+ websites including YouTube, TikTok, Instagram, Facebook, and more. Fast, free, and in the highest quality.">
+  <meta property="twitter:image" content="https://dw.fil-bd.com/og-image.png">
+
+  <!-- Theme colors -->
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0F172A" media="(prefers-color-scheme: dark)">
+
+  <!-- Favicon (optional: replace with your own assets) -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+
+  <!-- Prevent FOUC -->
   <script>
     (() => {
       const saved = localStorage.getItem("theme");
@@ -12,41 +50,64 @@
       document.documentElement.classList.toggle("dark", enableDark);
     })();
   </script>
+
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+
   <style>
-    .neon { box-shadow: 0 0 6px #8B5CF6, 0 0 18px #8B5CF6AA, inset 0 0 0 1px #8B5CF644; }
-    .glass { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    .neon {
+      box-shadow:
+        0 0 6px #8B5CF6,
+        0 0 18px #8B5CF6AA,
+        inset 0 0 0 1px #8B5CF644;
+    }
+    .glass {
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.05);
+    }
     .spin { animation: spin 1s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   </style>
 </head>
-<body class="min-h-screen bg-slate-900 text-slate-200 dark:bg-[#0F172A] dark:text-slate-200 transition-colors">
-  <header class="sticky top-0 z-20 bg-slate-900/60 dark:bg-slate-900/60 glass border-b border-white/5">
+
+<body class="min-h-screen bg-slate-900 text-slate-200 dark:bg-[#0F172A] dark:text-slate-200">
+  <!-- Header -->
+  <header class="sticky top-0 z-20 glass border-b border-white/5">
     <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 rounded-xl bg-[#8B5CF6] neon"></div>
-        <h1 class="text-xl font-semibold tracking-tight">Anydownloader</h1>
+        <a href="/" class="text-xl font-semibold tracking-tight">Any Downloader</a>
       </div>
       <div class="flex items-center gap-3">
         <button id="themeToggle"
                 class="px-3 py-2 rounded-xl border border-white/10 hover:border-white/20 neon bg-white/5 text-sm">
           Toggle <span class="hidden sm:inline">Dark/Light</span>
         </button>
-        <a href="https://downloader.fil-bd.com" class="text-xs sm:text-sm opacity-70 hover:opacity-100">downloader.fil-bd.com</a>
+        <a href="https://dw.fil-bd.com" class="text-xs sm:text-sm opacity-70 hover:opacity-100">dw.fil-bd.com</a>
       </div>
     </div>
   </header>
+
+  <!-- Main -->
   <main class="max-w-6xl mx-auto px-4 pt-12 pb-16">
     <section class="text-center">
-      <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight">
         Download videos. <span class="text-[#8B5CF6] drop-shadow-[0_0_10px_rgba(139,92,246,0.6)]">Fast.</span>
-      </h2>
-      <p class="mt-4 text-slate-400 max-w-2xl mx-auto">Paste any supported video URL...</p>
-      <div class="mt-8 mx-auto max-w-3xl p-6 sm:p-8 rounded-3xl glass bg-white/5 border border-white/10 neon">
+      </h1>
+      <p class="mt-4 text-slate-400 max-w-2xl mx-auto">
+        Paste any supported video URL. We’ll fetch it, upload securely to Backblaze,
+        and return a temporary (1-hour) download link.
+      </p>
+
+      <div class="mt-8 mx-auto max-w-3xl p-6 sm:p-8 rounded-3xl glass border border-white/10 neon">
         <label for="videoUrl" class="block text-left text-sm font-medium text-slate-300 mb-2">Video URL</label>
         <div class="flex flex-col sm:flex-row gap-3">
-          <input id="videoUrl" type="url" required placeholder="https://www.youtube.com/watch?v=..." class="flex-1 w-full px-4 py-3 rounded-xl bg-slate-800/60 border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] placeholder:text-slate-500" />
-          <button id="downloadBtn" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#8B5CF6] text-white font-medium hover:opacity-95 active:opacity-90 neon disabled:opacity-60 disabled:cursor-not-allowed">
+          <input id="videoUrl" type="url" required
+                 placeholder="https://www.youtube.com/watch?v=..."
+                 class="flex-1 w-full px-4 py-3 rounded-xl bg-slate-800/60 border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:border-transparent placeholder:text-slate-500" />
+          <button id="downloadBtn"
+                  class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#8B5CF6] text-white font-medium hover:opacity-95 active:opacity-90 neon disabled:opacity-60 disabled:cursor-not-allowed">
             <svg id="btnSpinner" class="hidden w-5 h-5 spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <circle cx="12" cy="12" r="9" stroke-opacity="0.2" stroke-width="4"></circle>
               <path d="M21 12a9 9 0 0 0-9-9" stroke-width="4" stroke-linecap="round"></path>
@@ -57,16 +118,106 @@
         <p id="message" class="mt-4 text-sm"></p>
       </div>
     </section>
+
+    <!-- Features -->
+    <section class="mt-16">
+      <h2 class="text-2xl font-semibold mb-6">Features</h2>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="p-6 rounded-3xl glass border border-white/10">
+          <h3 class="font-semibold mb-2 text-[#C4B5FD]">Neon UI</h3>
+          <p class="text-slate-400">Purple Neon theme with glassmorphism and dark/light mode.</p>
+        </div>
+        <div class="p-6 rounded-3xl glass border border-white/10">
+          <h3 class="font-semibold mb-2 text-[#C4B5FD]">FastAPI backend</h3>
+          <p class="text-slate-400">yt-dlp + Backblaze B2 with 1-hour signed links.</p>
+        </div>
+        <div class="p-6 rounded-3xl glass border border-white/10">
+          <h3 class="font-semibold mb-2 text-[#C4B5FD]">Privacy first</h3>
+          <p class="text-slate-400">No registration. Links auto-expire.</p>
+        </div>
+      </div>
+    </section>
   </main>
-  <footer class="border-t border-white/5"><div class="max-w-6xl mx-auto px-4 py-10 text-sm text-slate-500">© <span id="year"></span> Anydownloader</div></footer>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/5">
+    <div class="max-w-6xl mx-auto px-4 py-10 text-sm text-slate-500">
+      © <span id="year"></span> Any Downloader. All rights reserved.
+    </div>
+  </footer>
+
+  <!-- JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Any Downloader",
+    "alternateName": "Video Downloader",
+    "description": "Download videos and audio from 1,000+ websites including YouTube, TikTok, Instagram, Facebook, and more.",
+    "url": "https://dw.fil-bd.com/",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Web Browser",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "screenshot": "https://dw.fil-bd.com/screenshot.png",
+    "author": { "@type": "Organization", "name": "Any Downloader" }
+  }
+  </script>
+
+  <!-- App JS -->
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
     document.getElementById("themeToggle").addEventListener("click", () => {
       const isDark = document.documentElement.classList.toggle("dark");
       localStorage.setItem("theme", isDark ? "dark" : "light");
     });
-    const btn=document.getElementById("downloadBtn"),spinner=document.getElementById("btnSpinner"),btnText=document.getElementById("btnText"),msg=document.getElementById("message"),urlInput=document.getElementById("videoUrl");
-    function setLoading(v){btn.disabled=v;spinner.classList.toggle("hidden",!v);btnText.textContent=v?"Working...":"Get Download Link";msg.textContent="";}
-    btn.addEventListener("click",async()=>{const url=urlInput.value.trim();if(!url){msg.textContent="Please paste a video URL.";msg.className="mt-4 text-sm text-amber-400";return;}setLoading(true);try{const res=await fetch("/api/download-and-upload",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});const data=await res.json();if(!res.ok)throw new Error(data.detail||"Unknown error");if(data.downloadUrl){window.open(data.downloadUrl,"_blank","noopener");msg.textContent="Your download will open in a new tab.";msg.className="mt-4 text-sm text-emerald-400";}else{throw new Error("API did not return a downloadUrl");}}catch(err){msg.textContent="Error: "+err.message;msg.className="mt-4 text-sm text-rose-400";}finally{setLoading(false);}});
+
+    const btn = document.getElementById("downloadBtn");
+    const spinner = document.getElementById("btnSpinner");
+    const btnText = document.getElementById("btnText");
+    const msg = document.getElementById("message");
+    const urlInput = document.getElementById("videoUrl");
+
+    function setLoading(v) {
+      btn.disabled = v;
+      spinner.classList.toggle("hidden", !v);
+      btnText.textContent = v ? "Working..." : "Get Download Link";
+      msg.textContent = "";
+      msg.className = "mt-4 text-sm";
+    }
+
+    btn.addEventListener("click", async () => {
+      const url = urlInput.value.trim();
+      if (!url) {
+        msg.textContent = "Please paste a video URL.";
+        msg.className = "mt-4 text-sm text-amber-400";
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const res = await fetch("/api/download-and-upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error((data && data.detail) || "Unknown error");
+
+        if (data.downloadUrl) {
+          window.open(data.downloadUrl, "_blank", "noopener");
+          msg.textContent = "Your download will open in a new tab. Link expires in ~1 hour.";
+          msg.className = "mt-4 text-sm text-emerald-400";
+        } else {
+          throw new Error("API did not return a downloadUrl");
+        }
+      } catch (err) {
+        msg.textContent = "Error: " + (err && err.message ? err.message : String(err));
+        msg.className = "mt-4 text-sm text-rose-400";
+      } finally {
+        setLoading(false);
+      }
+    });
   </script>
-</body></html>
+</body>
+</html>
