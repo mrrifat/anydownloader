@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Env / secrets
+.env
+
+# Local certs/ACME volumes (created on server)
+letsencrypt/
+certbot/www/
