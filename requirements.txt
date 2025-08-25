@@ -4,3 +4,5 @@ yt-dlp
 b2sdk
 gunicorn
 python-multipart
+httpx
+boto3
