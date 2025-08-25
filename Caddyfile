@@ -1,0 +1,25 @@
+anygrab.xyz, www.anygrab.xyz {
+  encode gzip zstd
+
+  # Serve static frontend from ./static
+  root * /srv
+  file_server
+
+  # Proxy API to FastAPI container
+  @api path /api/*
+  reverse_proxy @api api:8000 {
+    flush_interval -1
+    transport http {
+      read_timeout  600s
+      write_timeout 600s
+    }
+  }
+
+  # Security headers
+  header {
+    X-Frame-Options "DENY"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  }
+}
