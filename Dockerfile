@@ -1,29 +1,34 @@
-# syntax=docker/dockerfile:1
+# ---- Base: Python 3.11 (slim) ----
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
 
-# System dependencies: ffmpeg for yt-dlp, ca-certificates
-RUN apt-get update \
- && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+# System deps: ffmpeg for merging streams, curl for healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg curl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
+# Workdir
 WORKDIR /app
 
-# Install Python dependencies first (cache layer)
+# Copy requirements first (better caching)
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && pip install -r /app/requirements.txt
 
-# Copy the application code
+# Copy app code
 COPY app /app/app
+# Optional: static/templates if you have them
+# COPY static /app/static
+# COPY templates /app/templates
 
-# Create non-root user
-RUN useradd -m runner
-USER runner
-
+# Expose the FastAPI port
 EXPOSE 8000
 
-# Gunicorn + Uvicorn workers
-ENV WEB_CONCURRENCY=2
-CMD ["bash", "-lc", "exec gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000 --workers ${WEB_CONCURRENCY} --timeout 180"]
+# Healthcheck endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8000/ || exit 1
+
+# Run the server
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
