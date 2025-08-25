@@ -1,4 +1,4 @@
-# app/main.py
+# main.py (root of the repo)
 from __future__ import annotations
 import os
 import uuid
@@ -6,25 +6,18 @@ import mimetypes
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-
 from yt_dlp import YoutubeDL
 
-# --- Load .env early (project root: one level above /app) ---
+# --- Load .env early (expects .env next to this file) ---
 from dotenv import load_dotenv
-ROOT_DIR = Path(__file__).resolve().parents[1]
+ROOT_DIR = Path(__file__).resolve().parent
 load_dotenv(dotenv_path=ROOT_DIR / ".env", override=False)
 
-# --- General paths ---
-BASE_DIR = ROOT_DIR
-STATIC_DIR = ROOT_DIR / "static"
-TEMPLATES_DIR = ROOT_DIR / "templates"
-
-# --- Downloads directory ---
-DOWNLOAD_DIR = Path(os.getenv("DOWNLOAD_DIR", ROOT_DIR / "downloads"))
+# --- Downloads directory (served at /api/downloads) ---
+DOWNLOAD_DIR = Path(os.getenv("DOWNLOAD_DIR", "/tmp/anygrab"))
 DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # --- Backblaze B2 (S3-compatible) env ---
@@ -37,8 +30,8 @@ B2_APPLICATION_KEY = os.getenv("B2_APPLICATION_KEY")
 B2_BUCKET_NAME     = os.getenv("B2_BUCKET_NAME")
 B2_S3_ENDPOINT     = os.getenv("B2_S3_ENDPOINT", "https://s3.us-west-002.backblazeb2.com")
 B2_PUBLIC_READ     = _env_bool("B2_PUBLIC_READ", "true")
-B2_PUBLIC_BASE_URL = os.getenv("B2_PUBLIC_BASE_URL")  # optional CDN / website domain
-B2_PRESIGNED_TTL   = int(os.getenv("B2_PRESIGNED_TTL", "604800"))
+B2_PUBLIC_BASE_URL = os.getenv("B2_PUBLIC_BASE_URL")  # optional CDN/website domain for public buckets
+B2_PRESIGNED_TTL   = int(os.getenv("B2_PRESIGNED_TTL", "604800"))  # 7 days default
 
 # --- yt-dlp cookies (optional, to bypass YouTube bot checks) ---
 COOKIES_FROM_BROWSER = os.getenv("COOKIES_FROM_BROWSER")  # e.g. "chrome", "chrome:Default", "firefox:default"
@@ -50,14 +43,14 @@ def _require_b2():
     if not B2_ENABLED:
         return
     missing = []
-    if not B2_KEY_ID: missing.append("B2_KEY_ID")
+    if not B2_KEY_ID:          missing.append("B2_KEY_ID")
     if not B2_APPLICATION_KEY: missing.append("B2_APPLICATION_KEY")
-    if not B2_BUCKET_NAME: missing.append("B2_BUCKET_NAME")
+    if not B2_BUCKET_NAME:     missing.append("B2_BUCKET_NAME")
     if missing:
         raise RuntimeError(f"Missing B2 env vars: {', '.join(missing)}")
 
 def _b2():
-    """Create (or reuse) a boto3 S3-compatible client for Backblaze."""
+    """Create (or reuse) a boto3 S3-compatible client for Backblaze B2."""
     global _b2_client
     if _b2_client is None:
         import boto3
@@ -72,18 +65,15 @@ def _b2():
     return _b2_client
 
 def _b2_upload_and_url(local_path: Path) -> str:
-    """Upload file to B2 and return either a public URL or a presigned URL."""
+    """Upload file to B2 and return a public or presigned URL."""
     client = _b2()
     object_key = f"uploads/{uuid.uuid4().hex}-{local_path.name}"
     content_type, _ = mimetypes.guess_type(local_path.name)
     extra = {"ContentType": content_type} if content_type else {}
 
-    client.upload_file(
-        str(local_path),
-        B2_BUCKET_NAME,
-        object_key,
-        ExtraArgs=extra,
-    )
+    # Simple and reliable upload call
+    with open(local_path, "rb") as fh:
+        client.put_object(Bucket=B2_BUCKET_NAME, Key=object_key, Body=fh, **extra)
 
     if B2_PUBLIC_READ:
         base = B2_PUBLIC_BASE_URL or f"{B2_S3_ENDPOINT}/{B2_BUCKET_NAME}"
@@ -96,29 +86,23 @@ def _b2_upload_and_url(local_path: Path) -> str:
     )
 
 # --- FastAPI app ---
-app = FastAPI(title="AnyDownloader")
+app = FastAPI(
+    title="AnyGrab API",
+    description="Backend for AnyGrab (anygrab.xyz)",
+    version="1.0.0",
+)
 
-# Static mounts
-if STATIC_DIR.exists():
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-app.mount("/downloads", StaticFiles(directory=DOWNLOAD_DIR), name="downloads")
-
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR)) if TEMPLATES_DIR.exists() else None
+# Expose local downloads via API path (Caddy proxies /api/* to us)
+app.mount("/api/downloads", StaticFiles(directory=DOWNLOAD_DIR), name="downloads")
 
 @app.on_event("startup")
 async def _startup():
-    # Fail fast with a clear error if B2 is enabled but not fully configured
+    # Fail fast if B2 is enabled but incomplete
     _require_b2()
 
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    if templates and (TEMPLATES_DIR / "index.html").exists():
-        return templates.TemplateResponse("index.html", {"request": request})
-    # Fallback simple page
-    return HTMLResponse(
-        "<h1>AnyDownloader</h1>"
-        "<p>POST <code>/api/download-and-upload</code> with JSON <code>{'url': '...'}</code>.</p>"
-    )
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "app": "AnyGrab", "b2_enabled": B2_ENABLED}
 
 def _ydl_opts() -> Dict[str, Any]:
     """Build yt-dlp options with optional cookie settings from .env."""
@@ -133,13 +117,11 @@ def _ydl_opts() -> Dict[str, Any]:
         "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}],
     }
 
-    # Optional cookie sources
+    # Optional cookie sources to bypass YouTube "bot" checks
     if COOKIES_FROM_BROWSER:
-        # Examples: "chrome", "chrome:Default", "firefox:default", "brave:Default"
         parts = COOKIES_FROM_BROWSER.split(":", 1)
         browser = parts[0]
         profile = parts[1] if len(parts) > 1 else None
-        # ("chrome", None, "Default") is OK; yt-dlp handles profiles per browser
         opts["cookiesfrombrowser"] = (browser, None, profile)
     elif COOKIES_FILE:
         opts["cookiefile"] = COOKIES_FILE
@@ -158,11 +140,15 @@ def _extract_output_path(info: Dict[str, Any]) -> Optional[Path]:
         p = None
     return Path(p) if p else None
 
+def _local_download_url(local_file: Path) -> str:
+    """Return the proxied URL for local files (Caddy → /api/*)."""
+    return f"/api/downloads/{local_file.name}"
+
 def _maybe_upload(local_file: Path) -> str:
-    """Upload to B2 if enabled, else return local /downloads URL."""
+    """Upload to B2 if enabled, else return local proxied URL."""
     if B2_ENABLED:
         return _b2_upload_and_url(local_file)
-    return f"/downloads/{local_file.name}"
+    return _local_download_url(local_file)
 
 @app.post("/api/download-and-upload")
 async def download_and_upload(payload: Dict[str, Any]):
@@ -178,7 +164,7 @@ async def download_and_upload(payload: Dict[str, Any]):
     except Exception as e:
         msg = str(e)
         # Friendly hint for common YouTube bot check
-        if "confirm you’re not a bot" in msg.lower():
+        if "confirm you’re not a bot" in msg.lower() or "confirm you're not a bot" in msg.lower():
             raise HTTPException(
                 status_code=401,
                 detail=(
@@ -197,7 +183,7 @@ async def download_and_upload(payload: Dict[str, Any]):
         final_url = _maybe_upload(out_path)
     except Exception as e:
         if out_path.exists():
-            final_url = f"/downloads/{out_path.name}"
+            final_url = _local_download_url(out_path)
         else:
             raise HTTPException(status_code=500, detail=f"B2 upload failed: {e}")
 
