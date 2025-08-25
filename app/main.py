@@ -1,156 +1,65 @@
-import os
-import shutil
-import tempfile
-import uuid
-from datetime import datetime
-from pathlib import Path
-from typing import Optional
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Any Downloader</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background-color: #f7f7f7; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .status { margin-top: 1rem; padding: 0.5rem; border-radius: 4px; display: none; }
+    .status.success { background: #e9fce9; border: 1px solid #5cb85c; color: #3c763d; }
+    .status.error { background: #fdeaea; border: 1px solid #d9534f; color: #a94442; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Any Downloader</h1>
+    <label for="url">Video URL:</label>
+    <input type="url" id="url" placeholder="Enter video URL" style="width:100%; padding:8px; margin-top:4px;" />
+    <label for="format" style="margin-top:12px;">Format:</label>
+    <select id="format" style="width:100%; padding:8px;">
+      <option value="best">Auto (best)</option>
+      <option value="bestaudio">Audio only</option>
+      <option value="best[ext=mp4]">MP4 only</option>
+    </select>
+    <button id="downloadBtn" style="margin-top:12px; padding:10px; width:100%;">Download</button>
+    <div id="status" class="status"></div>
+  </div>
+  <script>
+    document.getElementById('downloadBtn').addEventListener('click', async function () {
+      const url = document.getElementById('url').value.trim();
+      const format = document.getElementById('format').value;
+      const statusEl = document.getElementById('status');
+      statusEl.style.display = 'none';
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, HttpUrl
-from starlette.concurrency import run_in_threadpool
+      if (!url) {
+        statusEl.textContent = "Please enter a video URL.";
+        statusEl.className = 'status error';
+        statusEl.style.display = 'block';
+        return;
+      }
 
-# yt-dlp
-import yt_dlp
+      statusEl.textContent = "Processing...";
+      statusEl.className = 'status';
+      statusEl.style.display = 'block';
 
-# Backblaze B2 SDK
-from b2sdk.v2 import InMemoryAccountInfo, B2Api
+      try {
+        const res = await fetch('/api/download-and-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url, format: format })
+        });
+        const data = await res.json();
 
-
-# ---------- Config ----------
-B2_KEY_ID = os.getenv("B2_KEY_ID")
-B2_APPLICATION_KEY = os.getenv("B2_APPLICATION_KEY")
-B2_BUCKET_NAME = os.getenv("B2_BUCKET_NAME")
-
-if not all([B2_KEY_ID, B2_APPLICATION_KEY, B2_BUCKET_NAME]):
-    raise RuntimeError("Missing Backblaze B2 env vars: B2_KEY_ID, B2_APPLICATION_KEY, B2_BUCKET_NAME")
-
-# Disable yt-dlp auto-updater for reproducible builds
-os.environ.setdefault("YT_DLP_DISABLE_UPDATE", "1")
-
-app = FastAPI(title="Any Downloader API", version="1.0.0")
-
-# CORS (scoped to your domain; loosen to ["*"] if you need)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://dw.fil-bd.com", "http://dw.fil-bd.com"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-# ---------- Models ----------
-class DownloadRequest(BaseModel):
-    url: HttpUrl
-
-
-class DownloadResponse(BaseModel):
-    downloadUrl: HttpUrl
-
-
-# ---------- Helpers ----------
-def _download_video_to_temp(url: str) -> Path:
-    """
-    Download video with yt-dlp into a temporary folder.
-    Returns the path to the final file.
-    """
-    tmpdir = Path(tempfile.mkdtemp(prefix="anydownloader_"))
-    outtmpl = str(tmpdir / "%(title).200B-%(id)s.%(ext)s")
-    ydl_opts = {
-        "outtmpl": outtmpl,
-        "noplaylist": True,
-        "quiet": True,
-        "merge_output_format": "mp4",
-        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-    }
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
-            candidate = Path(filename)
-
-            if not candidate.exists():
-                # try post-merge .mp4
-                candidate_mp4 = candidate.with_suffix(".mp4")
-                if candidate_mp4.exists():
-                    candidate = candidate_mp4
-                else:
-                    files = sorted(tmpdir.glob("*"), key=lambda p: p.stat().st_size, reverse=True)
-                    if not files:
-                        raise FileNotFoundError("Downloaded file not found")
-                    candidate = files[0]
-            return candidate
-    except Exception:
-        shutil.rmtree(tmpdir, ignore_errors=True)
-        raise
-
-
-def _b2_client() -> B2Api:
-    info = InMemoryAccountInfo()
-    api = B2Api(info)
-    api.authorize_account("production", B2_KEY_ID, B2_APPLICATION_KEY)
-    return api
-
-
-def _upload_to_b2_and_get_signed_url(filepath: Path) -> str:
-    """
-    Upload the file to Backblaze B2 and return a 1-hour temporary link.
-    Uses download authorization token as a query parameter for browser-friendly access.
-    """
-    api = _b2_client()
-    bucket = api.get_bucket_by_name(B2_BUCKET_NAME)
-
-    today = datetime.utcnow().strftime("%Y/%m/%d")
-    dest_name = f"videos/{today}/{uuid.uuid4().hex}-{filepath.name}"
-
-    bucket.upload_local_file(local_file=str(filepath), file_name=dest_name)
-
-    base_url = api.get_download_url_for_file_name(B2_BUCKET_NAME, dest_name)
-    token = bucket.get_download_authorization(
-        file_name_prefix=dest_name,
-        valid_duration_in_seconds=3600,
-    )
-
-    from urllib.parse import urlencode
-    signed = f"{base_url}?{urlencode({'Authorization': token})}"
-    return signed
-
-
-async def _process(url: str) -> str:
-    path: Optional[Path] = None
-    try:
-        path = await run_in_threadpool(_download_video_to_temp, url)
-        signed_url = await run_in_threadpool(_upload_to_b2_and_get_signed_url, path)
-        return signed_url
-    finally:
-        if path:
-            try:
-                shutil.rmtree(path.parent, ignore_errors=True)
-            except Exception:
-                pass
-
-
-# ---------- API ----------
-@app.post("/api/download-and-upload", response_model=DownloadResponse)
-async def download_and_upload(payload: DownloadRequest):
-    try:
-        signed_url = await _process(payload.url)
-        return DownloadResponse(downloadUrl=signed_url)
-    except yt_dlp.utils.DownloadError as e:
-        raise HTTPException(status_code=400, detail=f"Download error: {str(e)[:300]}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)[:300]}")
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-
-# ---------- Static (mounted last so /api/* always wins) ----------
-static_dir = Path(__file__).parent / "static"
-if static_dir.exists():
-    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+        if (!res.ok) throw new Error(data.detail || 'Download failed');
+        statusEl.className = 'status success';
+        statusEl.textContent = `Download complete: ${data.filename}`;
+      } catch (err) {
+        statusEl.className = 'status error';
+        statusEl.textContent = `Error: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
